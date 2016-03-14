@@ -1,8 +1,9 @@
 import numpy as np
 import tensorflow as tf
-import cv2
+#import cv2
 import time
 import sys
+from PIL import Image
 
 
 class YOLO_TF:
@@ -144,9 +145,10 @@ class YOLO_TF:
 
     def detect_single(self, img):
         self.h_img, self.w_img, _ = img.shape
-        img_resized = cv2.resize(img, (448, 448))
-        img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
-        img_resized_np = np.asarray(img_RGB)
+        img = Image.fromarray(img).convert("RGB")
+        img = img.resize((448, 448), Image.ANTIALIAS)
+
+        img_resized_np = np.asarray(img)
         inputs = np.zeros((1, 448, 448, 3), dtype='float32')
         inputs[0] = (img_resized_np / 255.0) * 2.0 - 1.0
         in_dict = {self.x: inputs}
@@ -154,30 +156,16 @@ class YOLO_TF:
         self.result = self.interpret_output(net_output[0])
         out = []
         for el in self.result:
-            out.append(el[0])
+            x = int(el[1])
+            y = int(el[2])
+            w = int(el[3]) // 2
+            h = int(el[4]) // 2
+
+            # !!! OUTPUT FORMAT OF BB
+            #=======================================
+            out.append([el[0],(y,y+h,x,x+w)])
+            #=======================================
         return out
-
-    def detect_from_file(self, filename):
-        if self.disp_console: print 'Detect from ' + filename
-        img = cv2.imread(filename)
-        # img = misc.imread(filename)
-        self.detect_from_cvmat(img)
-
-    def detect_from_crop_sample(self):
-        self.w_img = 640
-        self.h_img = 420
-        f = np.array(open('person_crop.txt', 'r').readlines(), dtype='float32')
-        inputs = np.zeros((1, 448, 448, 3), dtype='float32')
-        for c in range(3):
-            for y in range(448):
-                for x in range(448):
-                    inputs[0, y, x, c] = f[c * 448 * 448 + y * 448 + x]
-
-        in_dict = {self.x: inputs}
-        net_output = self.sess.run(self.fc_32, feed_dict=in_dict)
-        self.boxes, self.probs = self.interpret_output(net_output[0])
-        img = cv2.imread('person.jpg')
-        self.show_results(self.boxes, img)
 
     def interpret_output(self, output):
         probs = np.zeros((7, 7, 2, 20))
@@ -278,10 +266,11 @@ class YOLO_TF:
 
 def main(argvs):
 
-    img = cv2.imread('dog.jpg')
+    img = Image.open('dog.jpg').convert("RGB")
+    img = np.array(img)
     yolo = YOLO_TF()
     print yolo.detect_single(img)
-    cv2.waitKey(1000)
+
 
 
 if __name__ == '__main__':
