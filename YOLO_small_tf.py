@@ -1,9 +1,9 @@
 import numpy as np
 import tensorflow as tf
-#import cv2
 import time
 import sys
 from PIL import Image
+import os
 
 
 class YOLO_TF:
@@ -28,6 +28,13 @@ class YOLO_TF:
     h_img = 480
 
     def __init__(self, argvs=[]):
+
+        # relative paths
+        filedir = os.path.dirname(os.path.abspath(__file__));
+        self.tofile_img = os.path.join(filedir, self.tofile_img)
+        self.tofile_txt = os.path.join(filedir, self.tofile_txt)
+        self.weights_file = os.path.join(filedir, self.weights_file)
+
         self.argv_parser(argvs)
         self.build_networks()
         if self.fromfile is not None: self.detect_from_file(self.fromfile)
@@ -128,20 +135,20 @@ class YOLO_TF:
         ip = tf.add(tf.matmul(inputs_processed, weight), biases)
         return tf.maximum(self.alpha * ip, ip, name=str(idx) + '_fc')
 
-    def detect_from_cvmat(self, img):
-        s = time.time()
-        self.h_img, self.w_img, _ = img.shape
-        img_resized = cv2.resize(img, (448, 448))
-        img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
-        img_resized_np = np.asarray(img_RGB)
-        inputs = np.zeros((1, 448, 448, 3), dtype='float32')
-        inputs[0] = (img_resized_np / 255.0) * 2.0 - 1.0
-        in_dict = {self.x: inputs}
-        net_output = self.sess.run(self.fc_32, feed_dict=in_dict)
-        self.result = self.interpret_output(net_output[0])
-        self.show_results(img, self.result)
-        strtime = str(time.time() - s)
-        if self.disp_console: print 'Elapsed time : ' + strtime + ' secs' + '\n'
+    # def detect_from_cvmat(self, img):
+    #     s = time.time()
+    #     self.h_img, self.w_img, _ = img.shape
+    #     img_resized = cv2.resize(img, (448, 448))
+    #     img_RGB = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
+    #     img_resized_np = np.asarray(img_RGB)
+    #     inputs = np.zeros((1, 448, 448, 3), dtype='float32')
+    #     inputs[0] = (img_resized_np / 255.0) * 2.0 - 1.0
+    #     in_dict = {self.x: inputs}
+    #     net_output = self.sess.run(self.fc_32, feed_dict=in_dict)
+    #     self.result = self.interpret_output(net_output[0])
+    #     self.show_results(img, self.result)
+    #     strtime = str(time.time() - s)
+    #     if self.disp_console: print 'Elapsed time : ' + strtime + ' secs' + '\n'
 
     def detect_single(self, img):
         self.h_img, self.w_img, _ = img.shape
@@ -219,35 +226,35 @@ class YOLO_TF:
 
         return result
 
-    def show_results(self, img, results):
-        img_cp = img.copy()
-        if self.filewrite_txt:
-            ftxt = open(self.tofile_txt, 'w')
-        for i in range(len(results)):
-            x = int(results[i][1])
-            y = int(results[i][2])
-            w = int(results[i][3]) // 2
-            h = int(results[i][4]) // 2
-            if self.disp_console: print '    class : ' + results[i][0] + ' , [x,y,w,h]=[' + str(x) + ',' + str(
-                y) + ',' + str(int(results[i][3])) + ',' + str(int(results[i][4])) + '], Confidence = ' + str(
-                results[i][5])
-            if self.filewrite_img or self.imshow:
-                cv2.rectangle(img_cp, (x - w, y - h), (x + w, y + h), (0, 255, 0), 2)
-                cv2.rectangle(img_cp, (x - w, y - h - 20), (x + w, y - h), (125, 125, 125), -1)
-                cv2.putText(img_cp, results[i][0] + ' : %.2f' % results[i][5], (x - w + 5, y - h - 7),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
-            if self.filewrite_txt:
-                ftxt.write(results[i][0] + ',' + str(x) + ',' + str(y) + ',' + str(w) + ',' + str(h) + ',' + str(
-                    results[i][5]) + '\n')
-        if self.filewrite_img:
-            if self.disp_console: print '    image file writed : ' + self.tofile_img
-            cv2.imwrite(self.tofile_img, img_cp)
-        if self.imshow:
-            cv2.imshow('YOLO_small detection', img_cp)
-            cv2.waitKey(1)
-        if self.filewrite_txt:
-            if self.disp_console: print '    txt file writed : ' + self.tofile_txt
-            ftxt.close()
+    # def show_results(self, img, results):
+    #     img_cp = img.copy()
+    #     if self.filewrite_txt:
+    #         ftxt = open(self.tofile_txt, 'w')
+    #     for i in range(len(results)):
+    #         x = int(results[i][1])
+    #         y = int(results[i][2])
+    #         w = int(results[i][3]) // 2
+    #         h = int(results[i][4]) // 2
+    #         if self.disp_console: print '    class : ' + results[i][0] + ' , [x,y,w,h]=[' + str(x) + ',' + str(
+    #             y) + ',' + str(int(results[i][3])) + ',' + str(int(results[i][4])) + '], Confidence = ' + str(
+    #             results[i][5])
+    #         if self.filewrite_img or self.imshow:
+    #             cv2.rectangle(img_cp, (x - w, y - h), (x + w, y + h), (0, 255, 0), 2)
+    #             cv2.rectangle(img_cp, (x - w, y - h - 20), (x + w, y - h), (125, 125, 125), -1)
+    #             cv2.putText(img_cp, results[i][0] + ' : %.2f' % results[i][5], (x - w + 5, y - h - 7),
+    #                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+    #         if self.filewrite_txt:
+    #             ftxt.write(results[i][0] + ',' + str(x) + ',' + str(y) + ',' + str(w) + ',' + str(h) + ',' + str(
+    #                 results[i][5]) + '\n')
+    #     if self.filewrite_img:
+    #         if self.disp_console: print '    image file writed : ' + self.tofile_img
+    #         cv2.imwrite(self.tofile_img, img_cp)
+    #     if self.imshow:
+    #         cv2.imshow('YOLO_small detection', img_cp)
+    #         cv2.waitKey(1)
+    #     if self.filewrite_txt:
+    #         if self.disp_console: print '    txt file writed : ' + self.tofile_txt
+    #         ftxt.close()
 
     def iou(self, box1, box2):
         tb = min(box1[0] + 0.5 * box1[2], box2[0] + 0.5 * box2[2]) - max(box1[0] - 0.5 * box1[2],
