@@ -39,6 +39,7 @@ class YOLO_TF:
         self.build_networks()
         if self.fromfile is not None: self.detect_from_file(self.fromfile)
 
+
     def argv_parser(self, argvs):
         for i in range(1, len(argvs), 2):
             if argvs[i] == '-fromfile': self.fromfile = argvs[i + 1]
