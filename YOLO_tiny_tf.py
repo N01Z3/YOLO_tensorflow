@@ -164,6 +164,8 @@ class YOLO_TF:
             #=======================================
             out.append([el[0],(y,y+h,x,x+w)])
             #=======================================
+        tf.reset_default_graph() # free local variables
+        self.sess.close()
         return out
 
 
